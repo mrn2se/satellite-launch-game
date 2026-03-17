@@ -1,6 +1,9 @@
 # 🛰️ Satellite Launch Game
 
+> ⚡ **Note:** This project was created with an AI-vibe coding approach, incorporating automated assistance and generative tools throughout development.
+
 A real-time 3D space mission simulator where you launch a satellite from Earth and navigate it through the solar system's gravitational fields. The goal is to hit a target planet using realistic Newtonian physics.
+
 
 ## Features
 
@@ -59,6 +62,9 @@ pnpm dev
 Open your browser to `http://localhost:5173/`
 
 ### Build for Production
+
+[![Build and Deploy to GitHub Pages](https://github.com/mrn2se/satellite-launch-game/actions/workflows/deploy.yml/badge.svg)](https://github.com/mrn2se/satellite-launch-game/actions/workflows/deploy.yml)
+
 
 ```bash
 pnpm build
