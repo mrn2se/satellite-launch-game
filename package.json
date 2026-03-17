@@ -1,8 +1,10 @@
 {
   "name": "satellite-launch-game",
+  "description": "A simple 3D game where you launch a satellite into orbit using Three.js and Vite.",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@10.23.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

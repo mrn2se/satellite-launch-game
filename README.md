@@ -50,10 +50,10 @@ git clone https://github.com/yourusername/satellite-launch-game
 cd satellite-launch-game
 
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server
-npm run dev
+pnpm dev
 ```
 
 Open your browser to `http://localhost:5173/`
@@ -61,8 +61,8 @@ Open your browser to `http://localhost:5173/`
 ### Build for Production
 
 ```bash
-npm run build
-npm run preview  # Preview production build
+pnpm build
+pnpm preview  # Preview production build
 ```
 
 ## How to Play
@@ -135,8 +135,8 @@ tests/
 
 Run unit tests:
 ```bash
-npm test              # Run once
-npm run test:watch   # Watch mode
+pnpm test             # Run once
+pnpm test:watch       # Watch mode
 ```
 
 Tests verify:
