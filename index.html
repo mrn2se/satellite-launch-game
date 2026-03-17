@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Satellite Launch Game</title>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <!-- UI Panel -->
+    <div id="ui-panel">
+      <h2>🛰 Satellite Launch</h2>
+
+      <div class="info-row">
+        <span>Status</span>
+        <span id="status">SETUP</span>
+      </div>
+      <div class="info-row">
+        <span>Time</span>
+        <span id="sim-time">Day 0</span>
+      </div>
+      <div class="info-row">
+        <span>Speed</span>
+        <span id="sat-speed">—</span>
+      </div>
+
+      <!-- Setup Panel -->
+      <div id="setup-panel">
+        <h3>Mission Setup</h3>
+
+        <label for="destination">Destination</label>
+        <select id="destination">
+          <option value="Mars" selected>Mars</option>
+          <option value="Venus">Venus</option>
+          <option value="Mercury">Mercury</option>
+          <option value="Jupiter">Jupiter</option>
+          <option value="Saturn">Saturn</option>
+        </select>
+
+        <label for="launch-angle">Launch Angle (°)</label>
+        <input type="number" id="launch-angle" value="45" min="0" max="360" step="1">
+
+        <label for="launch-speed">Launch Speed (km/s)</label>
+        <input type="number" id="launch-speed" value="15" min="1" max="100" step="0.5">
+
+        <div class="btn-row" style="margin-top: 10px;">
+          <button class="btn primary" id="btn-launch">🚀 Launch!</button>
+        </div>
+      </div>
+
+      <!-- Flight Panel -->
+      <div id="flight-panel" style="display: none;">
+        <h3>Simulation</h3>
+
+        <label>Time Scale</label>
+        <input type="range" id="time-scale" min="3.5" max="7.5" step="0.1" value="5">
+        <div class="info-row">
+          <span>Warp</span>
+          <span id="sim-speed">1d/s</span>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn" id="btn-pause">Pause</button>
+          <button class="btn" id="btn-gravity">Gravity Field</button>
+          <button class="btn" id="btn-satview">Sat View</button>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn danger" id="btn-reset">Reset</button>
+        </div>
+
+        <!-- Correction panel (visible when paused) -->
+        <div id="correction-panel">
+          <h3>Course Correction</h3>
+          <div class="correction-inputs">
+            <div>
+              <label for="corr-dx">Dir X</label>
+              <input type="number" id="corr-dx" value="1" step="0.1">
+            </div>
+            <div>
+              <label for="corr-dy">Dir Y</label>
+              <input type="number" id="corr-dy" value="0" step="0.1">
+            </div>
+            <div>
+              <label for="corr-dz">Dir Z</label>
+              <input type="number" id="corr-dz" value="0" step="0.1">
+            </div>
+          </div>
+          <label for="corr-dv">Delta-V (m/s)</label>
+          <input type="number" id="corr-dv" value="500" min="0" max="10000" step="10">
+          <div class="btn-row">
+            <button class="btn primary" id="btn-correct">Apply Correction</button>
+          </div>
+        </div>
+
+        <h3>Focus Camera</h3>
+        <div class="focus-buttons">
+          <button class="btn" data-focus="Sun">Sun</button>
+          <button class="btn" data-focus="Mercury">Mer</button>
+          <button class="btn" data-focus="Venus">Ven</button>
+          <button class="btn" data-focus="Earth">Earth</button>
+          <button class="btn" data-focus="Mars">Mars</button>
+          <button class="btn" data-focus="Jupiter">Jup</button>
+          <button class="btn" data-focus="Saturn">Sat</button>
+        </div>
+      </div>
+
+      <div class="kbd-hints">
+        <kbd>Space</kbd> Pause &nbsp; <kbd>G</kbd> Gravity &nbsp; <kbd>V</kbd> Sat View
+      </div>
+    </div>
+
+    <!-- Top info bar -->
+    <div id="top-bar">
+      <div class="info-item">
+        <span class="info-label">Mission:</span>
+        <span class="info-value" id="mission-target">Earth → Mars</span>
+      </div>
+    </div>
+
+    <!-- Message overlay -->
+    <div id="message"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
