@@ -10,7 +10,7 @@
 
     <!-- UI Panel -->
     <div id="ui-panel">
-      <h2>🛰 Satellite Launch</h2>
+      <h2>🛰 Satellite Launch <button class="btn-icon" id="btn-toggle-panel" title="Toggle panel">☰</button></h2>
 
       <div class="info-row">
         <span>Status</span>
@@ -73,6 +73,17 @@
         <!-- Correction panel (visible when paused) -->
         <div id="correction-panel">
           <h3>Course Correction</h3>
+
+          <!-- Visual joystick for direction -->
+          <div class="correction-joystick-wrap">
+            <div id="correction-joystick" class="joystick">
+              <div id="joystick-knob" class="joystick-knob"></div>
+              <div class="joystick-label-h">H</div>
+              <div class="joystick-label-v">V</div>
+            </div>
+            <div class="joystick-info">Drag to aim</div>
+          </div>
+
           <div class="correction-inputs">
             <div>
               <label for="corr-dx">Dir X</label>
@@ -89,6 +100,7 @@
           </div>
           <label for="corr-dv">Delta-V (m/s)</label>
           <input type="number" id="corr-dv" value="500" min="0" max="10000" step="10">
+          <input type="range" id="corr-dv-slider" min="0" max="10000" step="10" value="500">
           <div class="btn-row">
             <button class="btn primary" id="btn-correct">Apply Correction</button>
           </div>
@@ -121,6 +133,13 @@
 
     <!-- Message overlay -->
     <div id="message"></div>
+
+    <!-- Mobile quick-action buttons (visible on touch devices) -->
+    <div id="mobile-actions">
+      <button class="mobile-btn" id="mob-pause" title="Pause/Resume">⏸</button>
+      <button class="mobile-btn" id="mob-gravity" title="Gravity Field">🌀</button>
+      <button class="mobile-btn" id="mob-satview" title="Satellite View">📡</button>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

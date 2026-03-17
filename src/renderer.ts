@@ -24,6 +24,13 @@ export class Renderer {
   gravityArrows: THREE.Group | null = null;
   showGravityField = false;
 
+  // 3D correction arrow (shown when paused)
+  correctionArrow: THREE.ArrowHelper | null = null;
+  correctionGroup: THREE.Group | null = null;
+  correctionAngleH = 0;  // horizontal angle (radians)
+  correctionAngleV = 0;  // vertical angle (radians)
+  correctionDeltaV = 500; // m/s
+
   constructor(container: HTMLElement) {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x050510);
@@ -211,6 +218,11 @@ export class Renderer {
       this.satelliteMesh.visible = false;
     }
 
+    // Update gravity field visualization if enabled
+    if (this.showGravityField) {
+      this.createGravityFieldVisualization(sim);
+    }
+
     // Update controls and render
     if (this.activeCamera === this.orbitCamera) {
       this.controls.update();
@@ -236,16 +248,16 @@ export class Renderer {
     this.removeGravityFieldVisualization();
     this.gravityArrows = new THREE.Group();
 
-    // Create a grid of arrows on the XZ plane
+    const bodyData = sim.bodies.map(b => ({ position: { ...b.position }, mass: b.mass }));
+
+    // 1) Global grid arrows on the XZ plane
     const range = 12;
     const step = 0.8;
-    const bodyData = sim.bodies.map(b => ({ position: { ...b.position }, mass: b.mass }));
 
     for (let x = -range; x <= range; x += step) {
       for (let z = -range; z <= range; z += step) {
         const pos = { x, y: 0, z };
 
-        // Skip if inside a planet
         let insidePlanet = false;
         for (const body of sim.bodies) {
           const dx = x - body.position.x;
@@ -257,25 +269,88 @@ export class Renderer {
         }
         if (insidePlanet) continue;
 
-        // Calculate gravity field
         const accel = totalGravitationalAcceleration(pos, bodyData);
-
         const mag = Math.sqrt(accel.x * accel.x + accel.y * accel.y + accel.z * accel.z);
         if (mag < 1e-30) continue;
 
-        // Normalize and scale arrow
         const arrowLength = Math.min(0.3, Math.log10(mag / 1e-25) * 0.05 + 0.15);
         if (arrowLength < 0.02) continue;
 
         const dir = new THREE.Vector3(accel.x / mag, 0, accel.z / mag);
         const origin = new THREE.Vector3(x, 0, z);
 
-        // Color based on magnitude (blue=weak, red=strong)
         const t = Math.min(1, Math.max(0, (Math.log10(mag) + 25) / 10));
         const color = new THREE.Color().setHSL(0.66 - t * 0.66, 1, 0.5);
 
         const arrowHelper = new THREE.ArrowHelper(dir, origin, arrowLength, color.getHex(), 0.06, 0.04);
         this.gravityArrows.add(arrowHelper);
+      }
+    }
+
+    // 2) Dense arrows around each planet in concentric rings
+    for (const body of sim.bodies) {
+      const rings = [1.5, 2.2, 3.0];
+      const arrowCountBase = body.name === 'Sun' ? 24 : 16;
+
+      for (const ringMult of rings) {
+        const ringRadius = body.displayRadius * ringMult;
+        const arrowCount = arrowCountBase;
+
+        for (let i = 0; i < arrowCount; i++) {
+          const angle = (i / arrowCount) * Math.PI * 2;
+          const px = body.position.x + Math.cos(angle) * ringRadius;
+          const pz = body.position.z + Math.sin(angle) * ringRadius;
+          const pos = { x: px, y: 0, z: pz };
+
+          const accel = totalGravitationalAcceleration(pos, bodyData);
+          const mag = Math.sqrt(accel.x * accel.x + accel.y * accel.y + accel.z * accel.z);
+          if (mag < 1e-30) continue;
+
+          const arrowLen = Math.min(ringRadius * 0.35, Math.log10(mag / 1e-25) * 0.04 + 0.1);
+          if (arrowLen < 0.01) continue;
+
+          const dir = new THREE.Vector3(accel.x / mag, 0, accel.z / mag);
+          const origin = new THREE.Vector3(px, 0, pz);
+
+          const t = Math.min(1, Math.max(0, (Math.log10(mag) + 25) / 10));
+          const color = new THREE.Color().setHSL(0.66 - t * 0.66, 1, 0.5);
+
+          const headLen = Math.min(arrowLen * 0.3, 0.04);
+          const headW = Math.min(arrowLen * 0.2, 0.03);
+          const ah = new THREE.ArrowHelper(dir, origin, arrowLen, color.getHex(), headLen, headW);
+          this.gravityArrows.add(ah);
+        }
+      }
+
+      // 3) Vertical arrows above/below each planet
+      for (const yOff of [-1, 1]) {
+        for (const ringMult of [1.5, 2.5]) {
+          const ringRadius = body.displayRadius * ringMult;
+          const vertCount = body.name === 'Sun' ? 12 : 8;
+          for (let i = 0; i < vertCount; i++) {
+            const angle = (i / vertCount) * Math.PI * 2;
+            const px = body.position.x + Math.cos(angle) * ringRadius;
+            const py = yOff * body.displayRadius * 1.2;
+            const pz = body.position.z + Math.sin(angle) * ringRadius;
+            const pos = { x: px, y: py, z: pz };
+
+            const accel = totalGravitationalAcceleration(pos, bodyData);
+            const mag = Math.sqrt(accel.x * accel.x + accel.y * accel.y + accel.z * accel.z);
+            if (mag < 1e-30) continue;
+
+            const arrowLen = Math.min(ringRadius * 0.3, 0.15);
+            if (arrowLen < 0.01) continue;
+
+            const dir = new THREE.Vector3(accel.x / mag, accel.y / mag, accel.z / mag);
+            const origin = new THREE.Vector3(px, py, pz);
+
+            const t = Math.min(1, Math.max(0, (Math.log10(mag) + 25) / 10));
+            const color = new THREE.Color().setHSL(0.66 - t * 0.66, 1, 0.5);
+
+            const ah = new THREE.ArrowHelper(dir, origin, arrowLen, color.getHex(), arrowLen * 0.3, arrowLen * 0.2);
+            this.gravityArrows.add(ah);
+          }
+        }
       }
     }
 
@@ -293,6 +368,71 @@ export class Renderer {
     const mesh = this.planetMeshes.get(name);
     if (mesh) {
       this.controls.target.copy(mesh.position);
+    }
+  }
+
+  // --- 3D Correction Arrow ---
+
+  showCorrectionArrow(sim: Simulation): void {
+    this.removeCorrectionArrow();
+    if (!sim.satellite.alive) return;
+
+    this.correctionGroup = new THREE.Group();
+    const pos = sim.satellite.position;
+    this.correctionGroup.position.set(pos.x, pos.y, pos.z);
+
+    // Reference axes (small, semi-transparent)
+    const axLen = 0.12;
+    const xAxis = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), axLen, 0xff4444, 0.02, 0.015);
+    const yAxis = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), axLen, 0x44ff44, 0.02, 0.015);
+    const zAxis = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), axLen, 0x4444ff, 0.02, 0.015);
+    this.correctionGroup.add(xAxis, yAxis, zAxis);
+
+    // Correction direction arrow
+    this.updateCorrectionDirection();
+
+    this.scene.add(this.correctionGroup);
+  }
+
+  updateCorrectionDirection(): void {
+    if (!this.correctionGroup) return;
+
+    // Remove old arrow
+    if (this.correctionArrow) {
+      this.correctionGroup.remove(this.correctionArrow);
+    }
+
+    const dir = new THREE.Vector3(
+      Math.cos(this.correctionAngleV) * Math.cos(this.correctionAngleH),
+      Math.sin(this.correctionAngleV),
+      Math.cos(this.correctionAngleV) * Math.sin(this.correctionAngleH)
+    ).normalize();
+
+    const arrowLen = 0.05 + (this.correctionDeltaV / 10000) * 0.2;
+    this.correctionArrow = new THREE.ArrowHelper(dir, new THREE.Vector3(), arrowLen, 0xff8800, arrowLen * 0.3, arrowLen * 0.2);
+    this.correctionGroup.add(this.correctionArrow);
+  }
+
+  removeCorrectionArrow(): void {
+    if (this.correctionGroup) {
+      this.scene.remove(this.correctionGroup);
+      this.correctionGroup = null;
+      this.correctionArrow = null;
+    }
+  }
+
+  getCorrectionDirection(): { x: number; y: number; z: number } {
+    return {
+      x: Math.cos(this.correctionAngleV) * Math.cos(this.correctionAngleH),
+      y: Math.sin(this.correctionAngleV),
+      z: Math.cos(this.correctionAngleV) * Math.sin(this.correctionAngleH),
+    };
+  }
+
+  updateCorrectionArrowPosition(sim: Simulation): void {
+    if (this.correctionGroup && sim.satellite.alive) {
+      const pos = sim.satellite.position;
+      this.correctionGroup.position.set(pos.x, pos.y, pos.z);
     }
   }
 

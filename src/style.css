@@ -32,9 +32,11 @@ canvas {
   padding: 12px;
   font-size: 13px;
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   max-height: 95vh;
   overflow-y: auto;
   z-index: 10;
+  transition: transform 0.3s ease;
 }
 
 #ui-panel h2 {
@@ -245,4 +247,229 @@ input[type="range"] {
 #ui-panel::-webkit-scrollbar-thumb {
   background: rgba(100, 150, 255, 0.3);
   border-radius: 2px;
+}
+
+/* Panel toggle button */
+.btn-icon {
+  background: none;
+  border: none;
+  color: #88bbff;
+  font-size: 18px;
+  cursor: pointer;
+  float: right;
+  padding: 0 4px;
+  display: none;
+}
+
+/* Joystick */
+.correction-joystick-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.joystick {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: rgba(30, 30, 60, 0.8);
+  border: 2px solid rgba(100, 150, 255, 0.4);
+  position: relative;
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.joystick:active {
+  cursor: grabbing;
+}
+
+.joystick-knob {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 136, 0, 0.9);
+  border: 2px solid rgba(255, 200, 100, 0.7);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -12px;
+  margin-left: -12px;
+  transition: transform 0.05s;
+  pointer-events: none;
+}
+
+.joystick-label-h,
+.joystick-label-v {
+  position: absolute;
+  font-size: 9px;
+  color: rgba(100, 150, 255, 0.5);
+  pointer-events: none;
+}
+
+.joystick-label-h {
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.joystick-label-v {
+  top: 50%;
+  left: 2px;
+  transform: translateY(-50%);
+}
+
+.joystick-info {
+  font-size: 11px;
+  color: #667788;
+  line-height: 1.4;
+}
+
+/* Delta-V slider */
+#corr-dv-slider {
+  width: 100%;
+  margin: 4px 0;
+}
+
+/* Mobile action buttons */
+#mobile-actions {
+  display: none;
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 15;
+}
+
+.mobile-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(10, 10, 30, 0.85);
+  border: 2px solid rgba(100, 150, 255, 0.4);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  touch-action: manipulation;
+}
+
+.mobile-btn:active {
+  background: rgba(50, 80, 180, 0.7);
+}
+
+/* Touch device styles */
+.is-touch .btn-icon {
+  display: inline-block;
+}
+
+.is-touch #mobile-actions {
+  display: flex;
+}
+
+.is-touch #ui-panel.collapsed {
+  transform: translateX(-270px);
+}
+
+.is-touch #ui-panel.collapsed h2 {
+  transform: translateX(270px);
+  background: rgba(10, 10, 30, 0.85);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 12px;
+  border: 1px solid rgba(100, 150, 255, 0.3);
+  border-left: none;
+}
+
+.is-touch .kbd-hints {
+  display: none;
+}
+
+/* Responsive: small screens */
+@media (max-width: 600px) {
+  #ui-panel {
+    width: 240px;
+    padding: 8px;
+    font-size: 12px;
+    transition: transform 0.3s ease;
+  }
+
+  #ui-panel h2 {
+    font-size: 14px;
+    transition: transform 0.3s ease;
+  }
+
+  .btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .btn-icon {
+    display: inline-block;
+  }
+
+  #top-bar {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+
+  #message {
+    padding: 20px 30px;
+    font-size: 18px;
+  }
+
+  .joystick {
+    width: 80px;
+    height: 80px;
+  }
+
+  #mobile-actions {
+    display: flex;
+  }
+
+  .kbd-hints {
+    display: none;
+  }
+
+  .correction-inputs {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 2px;
+  }
+}
+
+/* Very small screens (phones in portrait) */
+@media (max-width: 400px) {
+  #ui-panel {
+    width: 200px;
+    padding: 6px;
+    font-size: 11px;
+  }
+
+  #top-bar {
+    font-size: 10px;
+    padding: 4px 8px;
+    gap: 8px;
+  }
+
+  .mobile-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 16px;
+  }
+}
+
+/* Landscape phones */
+@media (max-height: 500px) {
+  #ui-panel {
+    max-height: 90vh;
+  }
+
+  #top-bar {
+    top: 4px;
+  }
 }
