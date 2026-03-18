@@ -1,0 +1,112 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: dark;
+  --bg-top: #08111e;
+  --bg-bottom: #04070d;
+  --panel: rgba(10, 18, 36, 0.82);
+  --border: rgba(122, 171, 255, 0.24);
+  --text: #dbe7ff;
+  --muted: #9eb3d8;
+  --accent: #8fd0ff;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(66, 135, 245, 0.22), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(77, 208, 225, 0.18), transparent 24%),
+    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+}
+
+main {
+  width: min(860px, calc(100vw - 32px));
+  margin: 40px auto;
+  padding: 28px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+h1,
+h2 {
+  margin: 0 0 12px;
+}
+
+h1 {
+  color: var(--accent);
+  font-size: clamp(2rem, 3vw, 2.7rem);
+}
+
+h2 {
+  margin-top: 28px;
+  color: #b9d8ff;
+  font-size: 1.1rem;
+}
+
+p,
+li {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+ul {
+  padding-left: 20px;
+}
+
+a {
+  color: var(--accent);
+}
+
+.eyebrow {
+  margin-bottom: 10px;
+  color: #8ca2c7;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+}
+
+.callout {
+  margin: 22px 0;
+  padding: 16px 18px;
+  border-left: 3px solid rgba(143, 208, 255, 0.6);
+  background: rgba(143, 208, 255, 0.08);
+  border-radius: 10px;
+}
+
+.nav-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+
+.nav-row a {
+  text-decoration: none;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(15, 24, 44, 0.75);
+}
+
+.nav-row a:hover,
+.nav-row a:focus-visible {
+  background: rgba(38, 64, 111, 0.75);
+}
+
+@media (max-width: 640px) {
+  main {
+    width: min(100vw - 20px, 860px);
+    margin: 16px auto;
+    padding: 20px;
+    border-radius: 16px;
+  }
+}
