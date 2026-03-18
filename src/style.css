@@ -204,6 +204,68 @@ input[type="range"] {
   display: none;
 }
 
+.compact-row {
+  margin-top: 2px;
+}
+
+.correction-visualizer {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 8px;
+}
+
+#correction-plane {
+  width: 100%;
+  max-width: 280px;
+  aspect-ratio: 1;
+  justify-self: center;
+  border-radius: 18px;
+  border: 1px solid rgba(100, 150, 255, 0.35);
+  background:
+    radial-gradient(circle at center, rgba(71, 122, 255, 0.12), rgba(10, 12, 28, 0.95) 72%),
+    linear-gradient(rgba(90, 120, 180, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(90, 120, 180, 0.08) 1px, transparent 1px);
+  background-size: auto, 14% 14%, 14% 14%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.correction-legend {
+  display: grid;
+  gap: 6px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c7d7f0;
+  font-size: 12px;
+}
+
+.legend-swatch {
+  width: 16px;
+  height: 3px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.legend-swatch.velocity {
+  background: #4fd9ff;
+  box-shadow: 0 0 8px rgba(79, 217, 255, 0.4);
+}
+
+.legend-swatch.correction {
+  background: #ff9b42;
+  box-shadow: 0 0 8px rgba(255, 155, 66, 0.4);
+}
+
+.planner-info {
+  color: #8d9bb0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .correction-inputs {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -259,71 +321,6 @@ input[type="range"] {
   float: right;
   padding: 0 4px;
   display: none;
-}
-
-/* Joystick */
-.correction-joystick-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 8px 0;
-}
-
-.joystick {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  background: rgba(30, 30, 60, 0.8);
-  border: 2px solid rgba(100, 150, 255, 0.4);
-  position: relative;
-  cursor: grab;
-  touch-action: none;
-  flex-shrink: 0;
-}
-
-.joystick:active {
-  cursor: grabbing;
-}
-
-.joystick-knob {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: rgba(255, 136, 0, 0.9);
-  border: 2px solid rgba(255, 200, 100, 0.7);
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin-top: -12px;
-  margin-left: -12px;
-  transition: transform 0.05s;
-  pointer-events: none;
-}
-
-.joystick-label-h,
-.joystick-label-v {
-  position: absolute;
-  font-size: 9px;
-  color: rgba(100, 150, 255, 0.5);
-  pointer-events: none;
-}
-
-.joystick-label-h {
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.joystick-label-v {
-  top: 50%;
-  left: 2px;
-  transform: translateY(-50%);
-}
-
-.joystick-info {
-  font-size: 11px;
-  color: #667788;
-  line-height: 1.4;
 }
 
 /* Delta-V slider */
@@ -451,9 +448,8 @@ input[type="range"] {
     font-size: 18px;
   }
 
-  .joystick {
-    width: 80px;
-    height: 80px;
+  #correction-plane {
+    max-width: 100%;
   }
 
   #mobile-actions {

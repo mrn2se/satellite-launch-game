@@ -25,6 +25,7 @@ export class Renderer {
   showGravityField = false;
 
   // 3D correction arrow (shown when paused)
+  velocityArrow: THREE.ArrowHelper | null = null;
   correctionArrow: THREE.ArrowHelper | null = null;
   correctionGroup: THREE.Group | null = null;
   correctionAngleH = 0;  // horizontal angle (radians)
@@ -388,6 +389,8 @@ export class Renderer {
     const zAxis = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), axLen, 0x4444ff, 0.02, 0.015);
     this.correctionGroup.add(xAxis, yAxis, zAxis);
 
+    this.updateVelocityArrow(sim);
+
     // Correction direction arrow
     this.updateCorrectionDirection();
 
@@ -413,10 +416,34 @@ export class Renderer {
     this.correctionGroup.add(this.correctionArrow);
   }
 
+  updateVelocityArrow(sim: Simulation): void {
+    if (!this.correctionGroup || !sim.satellite.alive) return;
+
+    if (this.velocityArrow) {
+      this.correctionGroup.remove(this.velocityArrow);
+    }
+
+    const velocity = sim.satellite.velocity;
+    const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z);
+    if (speed <= 0) return;
+
+    const direction = new THREE.Vector3(
+      velocity.x / speed,
+      velocity.y / speed,
+      velocity.z / speed
+    );
+
+    const speedKms = speed * 1.496e8;
+    const arrowLen = Math.min(0.3, 0.1 + speedKms / 300);
+    this.velocityArrow = new THREE.ArrowHelper(direction, new THREE.Vector3(), arrowLen, 0x4fd9ff, arrowLen * 0.25, arrowLen * 0.14);
+    this.correctionGroup.add(this.velocityArrow);
+  }
+
   removeCorrectionArrow(): void {
     if (this.correctionGroup) {
       this.scene.remove(this.correctionGroup);
       this.correctionGroup = null;
+      this.velocityArrow = null;
       this.correctionArrow = null;
     }
   }
@@ -433,6 +460,7 @@ export class Renderer {
     if (this.correctionGroup && sim.satellite.alive) {
       const pos = sim.satellite.position;
       this.correctionGroup.position.set(pos.x, pos.y, pos.z);
+      this.updateVelocityArrow(sim);
     }
   }
 

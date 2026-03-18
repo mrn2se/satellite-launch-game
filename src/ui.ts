@@ -12,6 +12,9 @@ export class UI {
   private speedEl: HTMLElement;
   private messageEl: HTMLElement;
   private gamepad: GamepadManager;
+  private correctionPlane: HTMLCanvasElement | null;
+  private correctionPlaneContext: CanvasRenderingContext2D | null;
+  private elevationValueEl: HTMLElement;
 
   constructor(
     sim: Simulation,
@@ -23,11 +26,14 @@ export class UI {
     this.timeEl = document.getElementById('sim-time')!;
     this.speedEl = document.getElementById('sim-speed')!;
     this.messageEl = document.getElementById('message')!;
+    this.correctionPlane = document.getElementById('correction-plane') as HTMLCanvasElement | null;
+    this.correctionPlaneContext = this.correctionPlane?.getContext('2d') ?? null;
+    this.elevationValueEl = document.getElementById('corr-elevation-value')!;
 
     this.setupControls();
     this.setupKeyboard();
     this.setupMobile();
-    this.setupCorrectionJoystick();
+    this.setupCorrectionPlane();
 
     this.gamepad = new GamepadManager(
       sim, renderer,
@@ -64,6 +70,7 @@ export class UI {
       document.getElementById('btn-pause')!.textContent = 'Resume';
       document.getElementById('correction-panel')!.style.display = 'block';
       this.renderer.showCorrectionArrow(this.sim);
+      this.syncCorrectionUi();
     } else if (this.sim.state === 'paused') {
       this.sim.resume();
       document.getElementById('btn-pause')!.textContent = 'Pause';
@@ -80,6 +87,7 @@ export class UI {
 
     const direction: Vec3 = vec3Normalize({ x: dx, y: dy, z: dz });
     this.sim.applyCorrection({ direction, deltaV: dv });
+    this.syncCorrectionUi();
   }
 
   private doReset(): void {
@@ -132,17 +140,19 @@ export class UI {
     // Correction input fields update 3D arrow
     for (const id of ['corr-dx', 'corr-dy', 'corr-dz']) {
       document.getElementById(id)!.addEventListener('input', () => {
-        const dx = parseFloat((document.getElementById('corr-dx') as HTMLInputElement).value) || 0;
-        const dy = parseFloat((document.getElementById('corr-dy') as HTMLInputElement).value) || 0;
-        const dz = parseFloat((document.getElementById('corr-dz') as HTMLInputElement).value) || 0;
-        this.renderer.correctionAngleH = Math.atan2(dz, dx);
-        this.renderer.correctionAngleV = Math.atan2(dy, Math.sqrt(dx * dx + dz * dz));
-        this.renderer.updateCorrectionDirection();
+        this.updateCorrectionFromInputs();
       });
     }
     document.getElementById('corr-dv')!.addEventListener('input', () => {
       this.renderer.correctionDeltaV = parseFloat((document.getElementById('corr-dv') as HTMLInputElement).value) || 0;
       this.renderer.updateCorrectionDirection();
+      this.renderCorrectionPlane();
+    });
+
+    document.getElementById('corr-elevation')!.addEventListener('input', (event) => {
+      const degrees = parseFloat((event.target as HTMLInputElement).value) || 0;
+      this.renderer.correctionAngleV = (degrees * Math.PI) / 180;
+      this.syncCorrectionUi();
     });
 
     // Reset
@@ -178,6 +188,7 @@ export class UI {
         dvInput.value = dvSlider.value;
         this.renderer.correctionDeltaV = parseFloat(dvSlider.value);
         this.renderer.updateCorrectionDirection();
+        this.renderCorrectionPlane();
       });
       dvInput.addEventListener('input', () => {
         dvSlider.value = dvInput.value;
@@ -221,6 +232,34 @@ export class UI {
     (document.getElementById('corr-dy') as HTMLInputElement).value = dir.y.toFixed(2);
     (document.getElementById('corr-dz') as HTMLInputElement).value = dir.z.toFixed(2);
     this.renderer.updateCorrectionDirection();
+    this.renderCorrectionPlane();
+  }
+
+  private updateCorrectionFromInputs(): void {
+    const dx = parseFloat((document.getElementById('corr-dx') as HTMLInputElement).value) || 0;
+    const dy = parseFloat((document.getElementById('corr-dy') as HTMLInputElement).value) || 0;
+    const dz = parseFloat((document.getElementById('corr-dz') as HTMLInputElement).value) || 0;
+    this.renderer.correctionAngleH = Math.atan2(dz, dx);
+    this.renderer.correctionAngleV = Math.atan2(dy, Math.sqrt(dx * dx + dz * dz));
+    this.syncCorrectionUi();
+  }
+
+  private syncCorrectionUi(): void {
+    const dir = this.renderer.getCorrectionDirection();
+    (document.getElementById('corr-dx') as HTMLInputElement).value = dir.x.toFixed(2);
+    (document.getElementById('corr-dy') as HTMLInputElement).value = dir.y.toFixed(2);
+    (document.getElementById('corr-dz') as HTMLInputElement).value = dir.z.toFixed(2);
+    (document.getElementById('corr-dv') as HTMLInputElement).value = this.renderer.correctionDeltaV.toFixed(0);
+    const dvSlider = document.getElementById('corr-dv-slider') as HTMLInputElement | null;
+    if (dvSlider) {
+      dvSlider.value = this.renderer.correctionDeltaV.toFixed(0);
+    }
+
+    const elevationDegrees = Math.round((this.renderer.correctionAngleV * 180) / Math.PI);
+    (document.getElementById('corr-elevation') as HTMLInputElement).value = elevationDegrees.toString();
+    this.elevationValueEl.textContent = `${elevationDegrees}°`;
+    this.renderer.updateCorrectionDirection();
+    this.renderCorrectionPlane();
   }
 
   private setupMobile(): void {
@@ -233,59 +272,170 @@ export class UI {
     }
   }
 
-  private setupCorrectionJoystick(): void {
-    const joystick = document.getElementById('correction-joystick');
-    const knob = document.getElementById('joystick-knob');
-    if (!joystick || !knob) return;
+  private setupCorrectionPlane(): void {
+    if (!this.correctionPlane) return;
 
     let dragging = false;
-    let jRect: DOMRect;
 
-    const startDrag = (clientX: number, clientY: number) => {
+    const updateFromPointer = (clientX: number, clientY: number) => {
+      if (!this.correctionPlane) return;
+
+      const rect = this.correctionPlane.getBoundingClientRect();
+      const size = Math.min(rect.width, rect.height);
+      const radius = size * 0.42;
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      let offsetX = clientX - centerX;
+      let offsetY = clientY - centerY;
+      const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+      if (distance > radius) {
+        const scale = radius / distance;
+        offsetX *= scale;
+        offsetY *= scale;
+      }
+
+      if (Math.abs(offsetX) < 1 && Math.abs(offsetY) < 1) {
+        return;
+      }
+
+      this.renderer.correctionAngleH = Math.atan2(offsetY, offsetX);
+      this.syncCorrectionUi();
+    };
+
+    this.correctionPlane.addEventListener('pointerdown', (event) => {
       dragging = true;
-      jRect = joystick.getBoundingClientRect();
-      moveDrag(clientX, clientY);
-    };
-
-    const moveDrag = (clientX: number, clientY: number) => {
-      if (!dragging) return;
-      const cx = jRect.left + jRect.width / 2;
-      const cy = jRect.top + jRect.height / 2;
-      let dx = (clientX - cx) / (jRect.width / 2);
-      let dy = (clientY - cy) / (jRect.height / 2);
-
-      // Clamp to circle
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 1) { dx /= dist; dy /= dist; }
-
-      knob.style.transform = `translate(${dx * 35}px, ${dy * 35}px)`;
-
-      // Map to correction angles
-      this.renderer.correctionAngleH = dx * Math.PI;
-      this.renderer.correctionAngleV = -dy * Math.PI / 2;
-      this.renderer.updateCorrectionDirection();
-      this.syncArrowToInputs();
-    };
-
-    const endDrag = () => { dragging = false; };
-
-    // Mouse
-    joystick.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
-    window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
-    window.addEventListener('mouseup', endDrag);
-
-    // Touch
-    joystick.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      const t = e.touches[0];
-      startDrag(t.clientX, t.clientY);
-    }, { passive: false });
-    window.addEventListener('touchmove', (e) => {
-      if (!dragging) return;
-      const t = e.touches[0];
-      moveDrag(t.clientX, t.clientY);
+      this.correctionPlane?.setPointerCapture(event.pointerId);
+      updateFromPointer(event.clientX, event.clientY);
     });
-    window.addEventListener('touchend', endDrag);
+
+    this.correctionPlane.addEventListener('pointermove', (event) => {
+      if (!dragging) return;
+      updateFromPointer(event.clientX, event.clientY);
+    });
+
+    const endDrag = (event: PointerEvent) => {
+      if (!dragging) return;
+      dragging = false;
+      this.correctionPlane?.releasePointerCapture(event.pointerId);
+    };
+
+    this.correctionPlane.addEventListener('pointerup', endDrag);
+    this.correctionPlane.addEventListener('pointercancel', endDrag);
+    this.renderCorrectionPlane();
+  }
+
+  private renderCorrectionPlane(): void {
+    if (!this.correctionPlane || !this.correctionPlaneContext) return;
+
+    const ctx = this.correctionPlaneContext;
+    const width = this.correctionPlane.width;
+    const height = this.correctionPlane.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) * 0.42;
+
+    ctx.clearRect(0, 0, width, height);
+
+    ctx.save();
+    ctx.translate(0.5, 0.5);
+
+    ctx.strokeStyle = 'rgba(105, 135, 190, 0.22)';
+    ctx.lineWidth = 1;
+    for (const factor of [0.33, 0.66, 1]) {
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius * factor, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(centerX - radius, centerY);
+    ctx.lineTo(centerX + radius, centerY);
+    ctx.moveTo(centerX, centerY - radius);
+    ctx.lineTo(centerX, centerY + radius);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(210, 230, 255, 0.9)';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    const velocity = this.sim.satellite.velocity;
+    const horizontalSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+    if (horizontalSpeed > 0) {
+      this.drawPlanArrow(
+        centerX,
+        centerY,
+        (velocity.x / horizontalSpeed) * radius * 0.9,
+        (velocity.z / horizontalSpeed) * radius * 0.9,
+        '#4fd9ff',
+        'V'
+      );
+    }
+
+    const direction = this.renderer.getCorrectionDirection();
+    const horizontalCorrection = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
+    if (horizontalCorrection > 0.001) {
+      this.drawPlanArrow(
+        centerX,
+        centerY,
+        (direction.x / horizontalCorrection) * radius * 0.82,
+        (direction.z / horizontalCorrection) * radius * 0.82,
+        '#ff9b42',
+        'C'
+      );
+    }
+
+    ctx.fillStyle = 'rgba(145, 164, 192, 0.9)';
+    ctx.font = '12px Segoe UI';
+    ctx.fillText('forward', centerX - 22, centerY - radius - 10);
+    ctx.fillText('aft', centerX - 8, centerY + radius + 18);
+    ctx.fillText('port', centerX - radius - 28, centerY + 4);
+    ctx.fillText('starboard', centerX + radius - 20, centerY + 4);
+
+    ctx.restore();
+  }
+
+  private drawPlanArrow(
+    centerX: number,
+    centerY: number,
+    offsetX: number,
+    offsetY: number,
+    color: string,
+    label: string
+  ): void {
+    if (!this.correctionPlaneContext) return;
+
+    const ctx = this.correctionPlaneContext;
+    const endX = centerX + offsetX;
+    const endY = centerY + offsetY;
+    const angle = Math.atan2(offsetY, offsetX);
+
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    const headLength = 14;
+    ctx.beginPath();
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(
+      endX - Math.cos(angle - Math.PI / 6) * headLength,
+      endY - Math.sin(angle - Math.PI / 6) * headLength
+    );
+    ctx.lineTo(
+      endX - Math.cos(angle + Math.PI / 6) * headLength,
+      endY - Math.sin(angle + Math.PI / 6) * headLength
+    );
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.font = 'bold 12px Segoe UI';
+    ctx.fillText(label, endX + Math.cos(angle) * 8 - 4, endY + Math.sin(angle) * 8 + 4);
   }
 
   update(): void {
@@ -300,6 +450,10 @@ export class UI {
 
     // Update 3D correction arrow position
     this.renderer.updateCorrectionArrowPosition(this.sim);
+
+    if (this.sim.state === 'paused' && this.sim.satellite.alive) {
+      this.syncCorrectionUi();
+    }
 
     // Poll gamepad
     this.gamepad.update();

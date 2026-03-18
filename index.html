@@ -74,14 +74,20 @@
         <div id="correction-panel">
           <h3>Course Correction</h3>
 
-          <!-- Visual joystick for direction -->
-          <div class="correction-joystick-wrap">
-            <div id="correction-joystick" class="joystick">
-              <div id="joystick-knob" class="joystick-knob"></div>
-              <div class="joystick-label-h">H</div>
-              <div class="joystick-label-v">V</div>
+          <div class="correction-visualizer">
+            <canvas id="correction-plane" width="280" height="280" aria-label="Top down correction planner"></canvas>
+            <div class="correction-legend">
+              <div class="legend-item"><span class="legend-swatch velocity"></span>Velocity</div>
+              <div class="legend-item"><span class="legend-swatch correction"></span>Correction</div>
+              <div class="planner-info">Top view. Drag anywhere in the field to set the horizontal burn direction.</div>
             </div>
-            <div class="joystick-info">Drag to aim</div>
+          </div>
+
+          <label for="corr-elevation">Vertical Tilt</label>
+          <input type="range" id="corr-elevation" min="-90" max="90" step="1" value="0">
+          <div class="info-row compact-row">
+            <span>Elevation</span>
+            <span id="corr-elevation-value">0°</span>
           </div>
 
           <div class="correction-inputs">
